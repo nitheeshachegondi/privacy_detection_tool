@@ -9,7 +9,7 @@ Install Flask and other dependencies.
 
 #Installation
 Clone the repository:
-git clone https://github.com//piracy_detection_tool.git
+git clone https://github.com/nitheeshachegondi/privacy_detection_tool.git
 cd piracy_detection_tool
 
 #Install required libraries:
