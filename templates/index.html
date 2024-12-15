@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piracy Detection Tool</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Piracy Detection Tool</h1>
+
+        <!-- Text Analysis Form -->
+        <h2>Text Analysis</h2>
+        <form id="textForm">
+            <input type="url" name="url" placeholder="Enter URL" required>
+            <input type="text" name="keyword" placeholder="Enter Keyword" required>
+            <button type="submit">Analyze Text</button>
+        </form>
+        <div id="textResult"></div>
+
+        <!-- Image Analysis Form -->
+        <h2>Image Analysis</h2>
+        <form id="imageForm" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required>
+            <button type="submit">Analyze Image</button>
+        </form>
+        <div id="imageResult"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

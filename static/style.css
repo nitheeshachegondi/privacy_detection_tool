@@ -1,0 +1,39 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+h1, h2 {
+    color: #333;
+}
+form {
+    margin: 20px 0;
+}
+input, button {
+    padding: 10px;
+    margin: 5px;
+    font-size: 16px;
+}
+button {
+    background-color: #007BFF;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #0056b3;
+}
+#textResult, #imageResult {
+    margin-top: 20px;
+    font-weight: bold;
+    color: #333;
+}
