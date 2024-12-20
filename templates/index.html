@@ -13,8 +13,8 @@
         <!-- Text Analysis Form -->
         <h2>Text Analysis</h2>
         <form id="textForm">
-            <input type="url" name="url" placeholder="Enter URL" required>
-            <input type="text" name="keyword" placeholder="Enter Keyword" required>
+            <input type="url" name="url" id="url" placeholder="Enter URL" required>
+            <input type="text" name="keyword" id="keyword" placeholder="Enter Keyword" required>
             <button type="submit">Analyze Text</button>
         </form>
         <div id="textResult"></div>
@@ -22,7 +22,7 @@
         <!-- Image Analysis Form -->
         <h2>Image Analysis</h2>
         <form id="imageForm" enctype="multipart/form-data">
-            <input type="file" name="image" accept="image/*" required>
+            <input type="file" name="image" id="image" accept="image/*" required>
             <button type="submit">Analyze Image</button>
         </form>
         <div id="imageResult"></div>

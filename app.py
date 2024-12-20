@@ -1,87 +1,139 @@
-from flask import Flask, render_template, request, jsonify
-from bs4 import BeautifulSoup
-import requests
+# Required Libraries
+from flask import Flask, request, jsonify, render_template
 import hashlib
 import os
-import json
+from bs4 import BeautifulSoup
+import requests
 from datetime import datetime
+from werkzeug.utils import secure_filename
+from difflib import SequenceMatcher
 
+# Initialize Flask App
 app = Flask(__name__)
 
-# Load predefined piracy hashes (hardcoded piracy database)
-with open('pirated_hashes.json', 'r') as file:
-    PIRATED_HASHES = json.load(file)
+# Configurations
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Directory to store generated reports
-REPORTS_DIR = 'reports'
-if not os.path.exists(REPORTS_DIR):
-    os.makedirs(REPORTS_DIR)
+# Utility Functions
 
+def fetch_text_from_url(url):
+    """
+    Fetch text content from a URL.
+    """
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            return soup.get_text()
+        return None
+    except Exception as e:
+        print(f"Error fetching URL: {e}")
+        return None
 
-# Route for Home Page
+def hash_image(image_path):
+    """
+    Generate a SHA-256 hash for an image file.
+    """
+    hasher = hashlib.sha256()
+    with open(image_path, 'rb') as img:
+        buf = img.read()
+        hasher.update(buf)
+    return hasher.hexdigest()
+
+def similar(a, b):
+    """
+    Check similarity between two strings using SequenceMatcher.
+    """
+    return SequenceMatcher(None, a, b).ratio()
+
+# Simulated piracy data for text and image analysis
+PIRACY_KEYWORDS = ["pirated", "illegal download", "torrent", "free movie"]
+SIMULATED_IMAGE_HASHES = ["d2d2d2d2f4f4f4f4b1b1b1b1c3c3c3c3", "e3e3e3e3a4a4a4a4d5d5d5d5f6f6f6f6"]
+
+# Routes
+
 @app.route('/')
 def index():
+    """
+    Render the homepage with forms for text and image analysis.
+    """
     return render_template('index.html')
 
+@app.route('/detect-text', methods=['POST'])
+def detect_text():
+    """
+    Analyze text content from a URL for piracy-related keywords.
+    """
+    data = request.get_json()
+    url = data.get('url')
+    keyword = data.get('keyword')
 
-# Route for Text Analysis
-@app.route('/text_analysis', methods=['POST'])
-def text_analysis():
-    url = request.form['url']
-    keyword = request.form['keyword']
-    report = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "url": url, "keyword": keyword}
+    if not url or not keyword:
+        return jsonify({"error": "URL and keyword are required."}), 400
 
-    try:
-        # Fetch the web page content
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        text = soup.get_text()
+    # Fetch the text content from the URL
+    text_content = fetch_text_from_url(url)
+    if not text_content:
+        return jsonify({"error": "Failed to fetch content from URL."}), 400
 
-        # Search for the keyword
-        positions = [i for i in range(len(text)) if text.startswith(keyword, i)]
-        if positions:
-            report['text_matches'] = [{"position": pos, "context": text[max(0, pos-30):pos+30]} for pos in positions]
-            report['result'] = "Potential Piracy Detected: Keyword found."
-        else:
-            report['result'] = "No piracy detected for the keyword."
+    # Search for keyword and similar words in the content
+    matches = []
+    if keyword.lower() in text_content.lower():
+        matches.append(keyword)
 
-    except Exception as e:
-        report['result'] = f"Error fetching URL: {str(e)}"
+    for word in PIRACY_KEYWORDS:
+        if similar(word.lower(), keyword.lower()) > 0.8:
+            matches.append(word)
 
-    # Save report
-    save_report(report)
-    return jsonify(report)
+    if matches:
+        return jsonify({
+            "message": "Potential Piracy Detected",
+            "matches": matches,
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    else:
+        return jsonify({
+            "message": "No piracy detected in the text.",
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
 
+@app.route('/detect-image', methods=['POST'])
+def detect_image():
+    """
+    Analyze uploaded image for piracy by comparing its hash.
+    """
+    if 'image' not in request.files:
+        return jsonify({"error": "No file uploaded."}), 400
 
-# Route for Image Analysis
-@app.route('/image_analysis', methods=['POST'])
-def image_analysis():
     image = request.files['image']
-    report = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "filename": image.filename}
+    if image.filename == '':
+        return jsonify({"error": "No selected file."}), 400
 
-    try:
-        # Generate image hash
-        image_hash = hashlib.sha256(image.read()).hexdigest()
-        if image_hash in PIRATED_HASHES:
-            report['result'] = "Potential Piracy Detected: Uploaded image matches pirated content."
-        else:
-            report['result'] = "No piracy detected for the uploaded image."
+    # Save the uploaded image
+    filename = secure_filename(image.filename)
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    image.save(file_path)
 
-    except Exception as e:
-        report['result'] = f"Error processing image: {str(e)}"
+    # Generate hash and check against simulated piracy database
+    image_hash = hash_image(file_path)
 
-    # Save report
-    save_report(report)
-    return jsonify(report)
+    if image_hash in SIMULATED_IMAGE_HASHES:
+        os.remove(file_path)  # Clean up
+        return jsonify({
+            "message": "Potential Piracy Detected",
+            "pirated": True,
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+    else:
+        os.remove(file_path)  # Clean up
+        return jsonify({
+            "message": "No piracy detected in the image.",
+            "pirated": False,
+            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
 
-
-# Save Report to a File
-def save_report(report):
-    filename = os.path.join(REPORTS_DIR, f"report_{datetime.now().timestamp()}.json")
-    with open(filename, 'w') as file:
-        json.dump(report, file, indent=4)
-
-
-# Start Flask Server
+# Run the App
 if __name__ == '__main__':
     app.run(debug=True)
